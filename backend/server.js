@@ -104,14 +104,25 @@ app.post("/api/auth/register", async (req, res) => {
         hashedPassword,
       ]
     );
+const user = result.rows[0];
 
-    const user = result.rows[0];
+const token = jwt.sign(
+  {
+    id: user.id,
+    email: user.email,
+  },
+  JWT_SECRET,
+  {
+    expiresIn: "7d",
+  }
+);
 
-    res.status(201).json({
-      success: true,
-      message: "Account created successfully.",
-      user,
-    });
+res.status(201).json({
+  success: true,
+  message: "Account created successfully.",
+  token,
+  user,
+});
 
   } catch (error) {
     console.error("Register error:", error.message);

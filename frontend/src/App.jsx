@@ -13,6 +13,9 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Chat from "./pages/Chat";
+import CodeAssistant from "./pages/CodeAssistant";
+import ImageGenerator from "./pages/ImageGenerator";
 
 // -------------------------
 // PROTECTED ROUTE
@@ -208,6 +211,39 @@ function App() {
             </ProtectedRoute>
           }
         />
+	
+	{/* ---------------- AI CHAT ---------------- */}
+
+<Route
+  path="/chat"
+  element={
+    <ProtectedRoute user={user}>
+      <Chat />
+    </ProtectedRoute>
+  }
+/>
+
+{/* ---------------- CODE AI ---------------- */}
+
+<Route
+  path="/code-assistant"
+  element={
+    <ProtectedRoute user={user}>
+      <CodeAssistant />
+    </ProtectedRoute>
+  }
+/>
+
+{/* ---------------- IMAGE GENERATOR ---------------- */}
+
+<Route
+  path="/image-generator"
+  element={
+    <ProtectedRoute user={user}>
+      <ImageGenerator />
+    </ProtectedRoute>
+  }
+/>
 
         {/* ---------------- LOGIN ---------------- */}
 

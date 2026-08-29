@@ -19,60 +19,60 @@ function Login({ onLogin }) {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setError("");
-    setLoading(true);
+  setError("");
+  setLoading(true);
 
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Login failed."
-        );
+  try {
+    const response = await fetch(
+      "https://mindly-ai.onrender.com/api/auth/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
       }
+    );
 
-      // Save JWT token
-      localStorage.setItem(
-        "mindly-token",
-        data.token
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Login failed."
       );
-
-      // Save user
-      localStorage.setItem(
-        "mindly-user",
-        JSON.stringify(data.user)
-      );
-
-      // Update App authentication state
-      if (onLogin) {
-        onLogin(data.user);
-      }
-
-      // Go to homepage
-      navigate("/");
-
-    } catch (error) {
-      setError(
-        error.message || "Something went wrong."
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // Save JWT token
+    localStorage.setItem(
+      "mindly-token",
+      data.token
+    );
+
+    // Save user
+    localStorage.setItem(
+      "mindly-user",
+      JSON.stringify(data.user)
+    );
+
+    // Update App authentication state
+    if (onLogin) {
+      onLogin(data.user);
+    }
+
+    // Go to homepage
+    navigate("/");
+
+  } catch (error) {
+    setError(
+      error.message || "Something went wrong."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#05050a] px-6 py-32 text-white">
