@@ -1,26 +1,45 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import ProductDetails from "./pages/ProductDetails";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+// -------------------------
+// PROTECTED ROUTE
+// -------------------------
+
+function ProtectedRoute({ user, children }) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
 
 function App() {
-  // Load cart from localStorage
+  // -------------------------
+  // CART
+  // -------------------------
+
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem("mindly-cart");
-
       return savedCart ? JSON.parse(savedCart) : [];
-    } catch (error) {
-      console.error("Failed to load cart:", error);
+    } catch {
       return [];
     }
   });
 
-  // Save cart whenever cart changes
   useEffect(() => {
     localStorage.setItem(
       "mindly-cart",
@@ -28,37 +47,33 @@ function App() {
     );
   }, [cart]);
 
-  // Add product to cart
-  const addToCart = (product, quantity = 1) => {
+  const addToCart = (product) => {
     setCart((currentCart) => {
       const existingProduct = currentCart.find(
         (item) => item.id === product.id
       );
 
-      // Product already exists
       if (existingProduct) {
         return currentCart.map((item) =>
           item.id === product.id
             ? {
                 ...item,
-                quantity: item.quantity + quantity,
+                quantity: item.quantity + 1,
               }
             : item
         );
       }
 
-      // New product
       return [
         ...currentCart,
         {
           ...product,
-          quantity,
+          quantity: 1,
         },
       ];
     });
   };
 
-  // Remove product
   const removeFromCart = (productId) => {
     setCart((currentCart) =>
       currentCart.filter(
@@ -67,55 +82,97 @@ function App() {
     );
   };
 
-  // Update quantity
   const updateQuantity = (productId, quantity) => {
-    setCart((currentCart) => {
-      if (quantity <= 0) {
-        return currentCart.filter(
-          (item) => item.id !== productId
-        );
-      }
-
-      return currentCart.map((item) =>
-        item.id === productId
-          ? {
-              ...item,
-              quantity,
-            }
-          : item
-      );
-    });
+    setCart((currentCart) =>
+      currentCart
+        .map((item) =>
+          item.id === productId
+            ? {
+                ...item,
+                quantity,
+              }
+            : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
   };
 
-  // Clear cart
   const clearCart = () => {
     setCart([]);
+  };
+
+  // -------------------------
+  // AUTHENTICATION
+  // -------------------------
+
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser =
+        localStorage.getItem("mindly-user");
+
+      return savedUser
+        ? JSON.parse(savedUser)
+        : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(
+        "mindly-user",
+        JSON.stringify(user)
+      );
+    } else {
+      localStorage.removeItem("mindly-user");
+    }
+  }, [user]);
+
+  // Login
+  const handleLogin = (loggedInUser) => {
+    setUser(loggedInUser);
+  };
+
+  // Logout
+  const handleLogout = () => {
+    setUser(null);
+
+    localStorage.removeItem("mindly-token");
+    localStorage.removeItem("mindly-user");
   };
 
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* HOME */}
+        {/* ---------------- HOME ---------------- */}
+
         <Route
           path="/"
           element={
-            <Home cart={cart} />
+            <Home
+              cart={cart}
+              user={user}
+              onLogout={handleLogout}
+            />
           }
         />
 
-        {/* SHOP */}
-       <Route
-  path="/shop"
-  element={
-    <Shop
-      cart={cart}
-      addToCart={addToCart}
-    />
-  }
-/>
+        {/* ---------------- SHOP ---------------- */}
 
-        {/* PRODUCT DETAILS */}
+        <Route
+          path="/shop"
+          element={
+            <Shop
+              cart={cart}
+              addToCart={addToCart}
+            />
+          }
+        />
+
+        {/* ---------------- PRODUCT ---------------- */}
+
         <Route
           path="/product/:id"
           element={
@@ -125,7 +182,8 @@ function App() {
           }
         />
 
-        {/* CART */}
+        {/* ---------------- CART ---------------- */}
+
         <Route
           path="/cart"
           element={
@@ -133,19 +191,60 @@ function App() {
               cart={cart}
               removeFromCart={removeFromCart}
               updateQuantity={updateQuantity}
-              clearCart={clearCart}
             />
           }
         />
-	<Route
-  path="/checkout"
-  element={
-    <Checkout
-      cart={cart}
-      clearCart={clearCart}
-    />
-  }
-/>
+
+        {/* ---------------- CHECKOUT ---------------- */}
+
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute user={user}>
+              <Checkout
+                cart={cart}
+                clearCart={clearCart}
+              />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ---------------- LOGIN ---------------- */}
+
+        <Route
+          path="/login"
+          element={
+            user ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Login
+                onLogin={handleLogin}
+              />
+            )
+          }
+        />
+
+        {/* ---------------- REGISTER ---------------- */}
+
+        <Route
+          path="/register"
+          element={
+            user ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Register
+                onLogin={handleLogin}
+              />
+            )
+          }
+        />
+
+        {/* ---------------- 404 ---------------- */}
+
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
 
       </Routes>
     </BrowserRouter>

@@ -1,7 +1,8 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-function Navbar({ cart = [] }) {
+function Navbar({ cart = [], user = null, onLogout }) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const cartCount = cart.reduce(
     (total, item) => total + Number(item.quantity || 0),
@@ -9,6 +10,14 @@ function Navbar({ cart = [] }) {
   );
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+
+    navigate("/");
+  };
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-[#05050a]/85 backdrop-blur-xl">
@@ -102,21 +111,57 @@ function Navbar({ cart = [] }) {
             )}
           </Link>
 
-          {/* Login */}
-          <Link
-            to="/login"
-            className="hidden rounded-lg px-4 py-2 text-sm text-gray-400 transition hover:text-white sm:block"
-          >
-            Login
-          </Link>
+          {user ? (
+            <>
+              {/* User */}
+              <div className="hidden items-center gap-2 sm:flex">
 
-          {/* Get Started */}
-          <Link
-            to="/register"
-            className="rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-violet-600/10 transition hover:-translate-y-0.5"
-          >
-            Get Started
-          </Link>
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-blue-600 text-sm font-bold">
+                  {user.name
+                    ? user.name.charAt(0).toUpperCase()
+                    : user.email?.charAt(0).toUpperCase()}
+                </div>
+
+                <div className="hidden lg:block">
+                  <p className="max-w-[120px] truncate text-xs font-semibold text-white">
+                    {user.name || "User"}
+                  </p>
+
+                  <p className="max-w-[120px] truncate text-[10px] text-gray-500">
+                    {user.email}
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Logout */}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-gray-400 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Login */}
+              <Link
+                to="/login"
+                className="hidden rounded-lg px-4 py-2 text-sm text-gray-400 transition hover:text-white sm:block"
+              >
+                Login
+              </Link>
+
+              {/* Get Started */}
+              <Link
+                to="/register"
+                className="rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-violet-600/10 transition hover:-translate-y-0.5"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
 
         </div>
 

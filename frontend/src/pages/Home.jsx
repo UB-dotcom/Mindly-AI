@@ -6,11 +6,15 @@ import FeaturedProducts from "../components/FeaturedProducts";
 import CTA from "../components/CTA";
 import Footer from "../components/Footer";
 
-function Home({ cart }) {
+function Home({ cart, user, onLogout }) {
   return (
     <div className="min-h-screen bg-[#05050a] text-white">
 
-      <Navbar cart={cart} />
+      <Navbar
+        cart={cart}
+        user={user}
+        onLogout={onLogout}
+      />
 
       <Hero />
 
