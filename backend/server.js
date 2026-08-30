@@ -13,7 +13,11 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://mindly-ai-phi.vercel.app",
+    ],
+    credentials: true,
   })
 );
 
