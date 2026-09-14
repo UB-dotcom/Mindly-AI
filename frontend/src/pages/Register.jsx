@@ -15,10 +15,14 @@ function Register({ onLogin }) {
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+
+    setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -26,13 +30,29 @@ function Register({ onLogin }) {
 
     setError("");
 
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.");
+    const cleanName = form.name.trim();
+    const cleanEmail = form.email
+      .trim()
+      .replace(/^mailto:/i, "")
+      .toLowerCase();
+
+    if (!cleanName) {
+      setError("Please enter your name.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError("Please enter a valid email address.");
       return;
     }
 
     if (form.password.length < 6) {
       setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
@@ -47,8 +67,8 @@ function Register({ onLogin }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            name: form.name,
-            email: form.email,
+            name: cleanName,
+            email: cleanEmail,
             password: form.password,
           }),
         }
@@ -62,13 +82,11 @@ function Register({ onLogin }) {
         );
       }
 
-      // Save user
       localStorage.setItem(
         "mindly-user",
         JSON.stringify(data.user)
       );
 
-      // If backend returns token, save it
       if (data.token) {
         localStorage.setItem(
           "mindly-token",
@@ -76,17 +94,14 @@ function Register({ onLogin }) {
         );
       }
 
-      // Update App state
       if (onLogin) {
         onLogin(data.user);
       }
 
-      // Go to homepage
       navigate("/");
-
     } catch (error) {
       setError(
-        error.message || "Something went wrong."
+        error.message || "Unable to connect to the server."
       );
     } finally {
       setLoading(false);
@@ -95,7 +110,6 @@ function Register({ onLogin }) {
 
   return (
     <div className="min-h-screen bg-[#05050a] px-6 py-32 text-white">
-
       <div className="mx-auto max-w-md">
 
         {/* Header */}
@@ -133,6 +147,7 @@ function Register({ onLogin }) {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
+          noValidate
           className="mt-10 rounded-2xl border border-white/10 bg-white/[0.025] p-6"
         >
 
@@ -145,68 +160,87 @@ function Register({ onLogin }) {
 
           {/* Name */}
           <div>
-            <label className="text-sm text-gray-400">
+            <label
+              htmlFor="name"
+              className="text-sm text-gray-400"
+            >
               Full Name
             </label>
 
             <input
+              id="name"
               type="text"
               name="name"
               value={form.name}
               onChange={handleChange}
               placeholder="Your name"
-              required
+              autoComplete="name"
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-violet-500"
             />
           </div>
 
           {/* Email */}
           <div className="mt-5">
-            <label className="text-sm text-gray-400">
+            <label
+              htmlFor="email"
+              className="text-sm text-gray-400"
+            >
               Email
             </label>
 
             <input
-              type="email"
+              id="email"
+              type="text"
               name="email"
               value={form.email}
               onChange={handleChange}
               placeholder="you@example.com"
-              required
+              autoComplete="email"
+              inputMode="email"
+              spellCheck="false"
+              autoCapitalize="none"
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-violet-500"
             />
           </div>
 
           {/* Password */}
           <div className="mt-5">
-            <label className="text-sm text-gray-400">
+            <label
+              htmlFor="password"
+              className="text-sm text-gray-400"
+            >
               Password
             </label>
 
             <input
+              id="password"
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
               placeholder="At least 6 characters"
-              required
+              autoComplete="new-password"
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-violet-500"
             />
           </div>
 
           {/* Confirm Password */}
           <div className="mt-5">
-            <label className="text-sm text-gray-400">
+            <label
+              htmlFor="confirmPassword"
+              className="text-sm text-gray-400"
+            >
               Confirm Password
             </label>
 
             <input
+              id="confirmPassword"
               type="password"
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
               placeholder="Repeat your password"
-              required
+              autoComplete="new-password"
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-violet-500"
             />
           </div>
@@ -235,7 +269,6 @@ function Register({ onLogin }) {
           </p>
 
         </form>
-
       </div>
     </div>
   );
