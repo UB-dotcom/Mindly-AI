@@ -14,6 +14,9 @@ function Checkout({ cart, clearCart }) {
     pincode: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const subtotal = cart.reduce(
     (total, item) =>
       total + Number(item.price) * Number(item.quantity),
@@ -30,24 +33,76 @@ function Checkout({ cart, clearCart }) {
       ...current,
       [name]: value,
     }));
+
+    setError("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (cart.length === 0) {
       return;
     }
 
-    const orderId =
-      "MINDLY-" +
-      Date.now().toString().slice(-8);
+    const token = localStorage.getItem("mindly-token");
 
-    alert(`Order placed successfully!\n\nOrder ID: ${orderId}`);
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
-    clearCart();
+    setLoading(true);
+    setError("");
 
-    navigate("/");
+    try {
+      const response = await fetch(
+        "https://mindly-ai.onrender.com/api/orders",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            items: cart.map((item) => ({
+              id: item.id,
+              name: item.name,
+              price: Number(item.price),
+              quantity: Number(item.quantity),
+            })),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Unable to place order."
+        );
+      }
+
+      const orderId = data.order?.id;
+
+      clearCart();
+
+      alert(
+        orderId
+          ? `Order placed successfully!\n\nOrder ID: ${orderId}`
+          : "Order placed successfully!"
+      );
+
+      navigate("/");
+    } catch (error) {
+      console.error("Order error:", error);
+
+      setError(
+        error.message ||
+          "Unable to place your order. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (cart.length === 0) {
@@ -55,7 +110,6 @@ function Checkout({ cart, clearCart }) {
       <div className="min-h-screen bg-[#05050a] text-white">
         <div className="flex min-h-screen items-center justify-center px-6">
           <div className="text-center">
-
             <div className="text-6xl">
               🛒
             </div>
@@ -74,7 +128,6 @@ function Checkout({ cart, clearCart }) {
             >
               Explore Shop
             </Link>
-
           </div>
         </div>
       </div>
@@ -123,6 +176,13 @@ function Checkout({ cart, clearCart }) {
             <p className="mt-2 text-sm text-gray-500">
               We'll use these details for your order.
             </p>
+
+            {/* API Error */}
+            {error && (
+              <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {error}
+              </div>
+            )}
 
             <div className="mt-7 grid gap-5 sm:grid-cols-2">
 
@@ -242,26 +302,30 @@ function Checkout({ cart, clearCart }) {
                   className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-500/60"
                 />
               </div>
-
             </div>
 
-            {/* Payment placeholder */}
+            {/* Payment */}
             <div className="mt-8 rounded-xl border border-violet-500/20 bg-violet-500/[0.05] p-5">
 
               <div className="flex items-center gap-3">
+
                 <span className="text-xl">
                   🔒
                 </span>
 
                 <div>
+
                   <h3 className="text-sm font-semibold">
                     Secure Payment
                   </h3>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    Payment gateway will be connected in the next phase.
+                    Payment gateway will be connected in
+                    the next phase.
                   </p>
+
                 </div>
+
               </div>
 
             </div>
@@ -350,14 +414,17 @@ function Checkout({ cart, clearCart }) {
 
             <button
               type="submit"
-              className="mt-7 w-full rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 py-4 text-sm font-semibold shadow-lg shadow-violet-600/20 transition hover:-translate-y-0.5"
+              disabled={loading}
+              className="mt-7 w-full rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 py-4 text-sm font-semibold shadow-lg shadow-violet-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Place Order →
+              {loading
+                ? "Placing Order..."
+                : "Place Order →"}
             </button>
 
             <p className="mt-4 text-center text-[11px] text-gray-600">
-              By placing your order, you agree to our terms and
-              conditions.
+              By placing your order, you agree to our
+              terms and conditions.
             </p>
 
           </aside>

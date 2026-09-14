@@ -23,6 +23,36 @@ app.use(
 
 app.use(express.json());
 
+// ========================================
+// AUTH MIDDLEWARE
+// ========================================
+
+function authenticateToken(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required.",
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    req.user = decoded;
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token.",
+    });
+  }
+}
+
 
 // ========================================
 // ROOT
@@ -220,6 +250,108 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+
+// ========================================
+// CREATE ORDER
+// ========================================
+
+app.post("/api/orders", authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Order must contain at least one item.",
+      });
+    }
+
+    // Calculate totals on the server
+    const preparedItems = items.map((item) => {
+      const productId = Number(item.id);
+      const price = Number(item.price);
+      const quantity = Number(item.quantity);
+
+      if (
+        !Number.isFinite(productId) ||
+        !Number.isFinite(price) ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0
+      ) {
+        throw new Error("Invalid order item.");
+      }
+
+      const subtotal = price * quantity;
+
+      return {
+        productId,
+        name: String(item.name || "Product"),
+        price,
+        quantity,
+        subtotal,
+      };
+    });
+
+    const totalAmount = preparedItems.reduce(
+      (total, item) => total + item.subtotal,
+      0
+    );
+
+    await client.query("BEGIN");
+
+    const orderResult = await client.query(
+      `INSERT INTO public.orders
+        (user_id, total_amount, status, payment_status)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, user_id, total_amount, status, payment_status, created_at`,
+      [
+        req.user.id,
+        totalAmount,
+        "pending",
+        "pending",
+      ]
+    );
+
+    const order = orderResult.rows[0];
+
+    for (const item of preparedItems) {
+      await client.query(
+        `INSERT INTO public.order_items
+          (order_id, product_id, product_name, price, quantity, subtotal)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          order.id,
+          item.productId,
+          item.name,
+          item.price,
+          item.quantity,
+          item.subtotal,
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      success: true,
+      message: "Order created successfully.",
+      order,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    console.error("Create order error:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Unable to create order.",
+    });
+  } finally {
+    client.release();
+  }
+});
 
 // ========================================
 // START SERVER
